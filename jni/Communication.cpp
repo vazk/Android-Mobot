@@ -1,12 +1,15 @@
 #include "Communication.hpp"
 #include "SocketManager.hpp"
 #include "Command.hpp"
+#include <iostream>
 
-static SocketManager socketManager;
+SocketManager socketManager;
 
-JNIEXPORT bool JNICALL Java_com_mobot_CommunicationManager_connect(JNIEnv* env,jobject thiz, jstring ip, jint port)
+JNIEXPORT bool JNICALL Java_com_mobot_CommunicationManager_connect(JNIEnv* env, jobject thiz, jstring ip, jint port)
 {
     const char* ipPtr = env->GetStringUTFChars(ip, 0);
+    std::cout<<"ipPtr: "<<ipPtr<<std::endl;
+    std::cout<<"port: "<<port<<std::endl;
     bool status = socketManager.connectToServer(ipPtr, port);
     env->ReleaseStringUTFChars(ip, ipPtr);
 
@@ -27,27 +30,34 @@ JNIEXPORT void JNICALL Java_com_mobot_CommunicationManager_close(JNIEnv* env, jo
 {
 }
 
-JNIEXPORT void JNICALL Java_com_mobot_CommunicationManager_commandQuit(JNIEnv* env, jobject thiz)
+JNIEXPORT bool JNICALL Java_com_mobot_CommunicationManager_commandAck(JNIEnv* env, jobject thiz)
 {
     Command cmd;
     cmd.data.type = Command::CMD_QUIT;
-    socketManager.write(cmd.data.raw, Command::COMMAND_PACKET_LENGTH);
+    return socketManager.write(cmd.data.raw, Command::COMMAND_PACKET_LENGTH) == Command::COMMAND_PACKET_LENGTH;
 }
 
-JNIEXPORT void JNICALL Java_com_mobot_CommunicationManager_commandStop(JNIEnv* env, jobject thiz)
+JNIEXPORT bool JNICALL Java_com_mobot_CommunicationManager_commandQuit(JNIEnv* env, jobject thiz)
+{
+    Command cmd;
+    cmd.data.type = Command::CMD_QUIT;
+    return socketManager.write(cmd.data.raw, Command::COMMAND_PACKET_LENGTH) == Command::COMMAND_PACKET_LENGTH;
+}
+
+JNIEXPORT bool JNICALL Java_com_mobot_CommunicationManager_commandStop(JNIEnv* env, jobject thiz)
 {
     Command cmd;
     cmd.data.type = Command::CMD_DRIVE;
     cmd.data.drive.left = 0;
     cmd.data.drive.right = 0;
-    socketManager.write(cmd.data.raw, Command::COMMAND_PACKET_LENGTH);
+    return socketManager.write(cmd.data.raw, Command::COMMAND_PACKET_LENGTH) == Command::COMMAND_PACKET_LENGTH;
 }
 
-JNIEXPORT void JNICALL Java_com_mobot_CommunicationManager_commandDrive(JNIEnv* env, jobject thiz, jfloat left, jfloat right)
+JNIEXPORT bool JNICALL Java_com_mobot_CommunicationManager_commandDrive(JNIEnv* env, jobject thiz, jfloat left, jfloat right)
 {
     Command cmd;
     cmd.data.type = Command::CMD_DRIVE;
     cmd.data.drive.left = left * 255;
     cmd.data.drive.right = right * 255;
-    socketManager.write(cmd.data.raw, Command::COMMAND_PACKET_LENGTH);
+    return socketManager.write(cmd.data.raw, Command::COMMAND_PACKET_LENGTH) == Command::COMMAND_PACKET_LENGTH;
 }

@@ -15,8 +15,9 @@ extern "C" {
     JNIEXPORT void JNICALL Java_com_mobot_CommunicationManager_close(JNIEnv* env, jobject thiz);
 
 
-    JNIEXPORT void Java_com_mobot_CommunicationManager_commandQuit(JNIEnv* env, jobject thiz);
-    JNIEXPORT void Java_com_mobot_CommunicationManager_commandStop(JNIEnv* env, jobject thiz);
-    JNIEXPORT void Java_com_mobot_CommunicationManager_commandDrive(JNIEnv* env, jobject thiz, jfloat left, jfloat right);
+    JNIEXPORT bool Java_com_mobot_CommunicationManager_commandAck(JNIEnv* env, jobject thiz);
+    JNIEXPORT bool Java_com_mobot_CommunicationManager_commandQuit(JNIEnv* env, jobject thiz);
+    JNIEXPORT bool Java_com_mobot_CommunicationManager_commandStop(JNIEnv* env, jobject thiz);
+    JNIEXPORT bool Java_com_mobot_CommunicationManager_commandDrive(JNIEnv* env, jobject thiz, jfloat left, jfloat right);
 
 }
