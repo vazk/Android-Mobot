@@ -53,77 +53,15 @@ SocketManager::waitForConnection(int port)
 bool
 SocketManager::connectToServer(const std::string& ip, int port)
 {
-    struct sockaddr_in stSockAddr;
-    int Res;
-    mConSocket = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
- 
-    if (mConSocket < 0) {
-        return false;
-    }
- 
-    memset(&stSockAddr, 0, sizeof(stSockAddr));
- 
-    stSockAddr.sin_family = AF_INET;
-    stSockAddr.sin_port = htons(port);
-    Res = inet_pton(AF_INET, "192.168.2.6", &stSockAddr.sin_addr);
-
-    if(0 > Res)  {
-        std::cerr<<"ERROR: no such address family."<<std::endl;
-        close();
-        return false;
-    } else 
-    if(0 == Res) {
-        std::cerr<<"ERROR: no such host."<<std::endl;
-        close();
-        return false;
-    }
-    if(connect(mConSocket, (struct sockaddr *)&stSockAddr, sizeof(stSockAddr)) < 0) {
-        std::cerr<<"ERROR: failed to connect..."<<std::endl;
-        close();
-        return false;
-    }
-    mIsConnected = true;
-    return true;
-
-#if 0
-    struct hostent *hp;     /* host information */
-    struct sockaddr_in servaddr;    /* server address */
-
-    /* fill in the server's address and data */
-    memset((char*)&servaddr, 0, sizeof(servaddr));
-    servaddr.sin_family = AF_INET;
-    servaddr.sin_port = htons(port);
-
-    /* look up the address of the server given its name */
-    hp = gethostbyname(ip.c_str());
-    if (!hp) {
-        std::cerr<<"ERROR: no such host."<<std::endl;
-        return false;
-    }
-
-    /* put the host's address into the server address structure */
-    memcpy((void *)&servaddr.sin_addr, hp->h_addr_list[0], hp->h_length);
-
-    /* connect to server */
-    if (connect(mConSocket, (struct sockaddr *)&servaddr, sizeof(servaddr)) < 0) {
-        std::cerr<<"ERROR: failed to connect..."<<std::endl;
-        return false;
-    }
-    mIsConnected = true;
-    return true;
-#endif
-
-
-#if 0
     close();
     mConSocket = socket(AF_INET, SOCK_STREAM, 0);
     if (mConSocket < 0) {
-        std::cerr<<"ERROR: failed to open a socket."<<std::endl;
+        //std::cerr<<"ERROR: failed to open a socket."<<std::endl;
         return false;
     }
     struct hostent* server = gethostbyname(ip.c_str());
     if (server == NULL) {
-        std::cerr<<"ERROR: no such host."<<std::endl;
+        //std::cerr<<"ERROR: no such host."<<std::endl;
         return false;
     }
     sockaddr_in servAddr;
@@ -133,12 +71,11 @@ SocketManager::connectToServer(const std::string& ip, int port)
     servAddr.sin_port = htons(port);
     if (connect(mConSocket, (struct sockaddr*)& servAddr, sizeof(servAddr)) < 0)  {
         close();
-        std::cerr<<"ERROR: failed to connect..."<<std::endl;
+        //std::cerr<<"ERROR: failed to connect..."<<std::endl;
         return false;
     }
     mIsConnected = true;
     return true;
-#endif
 }
 
 bool 
