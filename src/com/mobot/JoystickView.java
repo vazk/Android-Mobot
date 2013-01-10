@@ -1,6 +1,7 @@
 package com.mobot;
 
 import android.content.Context;
+import android.content.Intent;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.Rect;
@@ -18,12 +19,10 @@ public class JoystickView extends View
     private Joystick mJoystick;
     private CommunicationManager mComm;
     
-	public JoystickView(Context context) {
+	public JoystickView(Context context, CommunicationManager comm) {
 		super(context);
-        mJoystick = new Joystick(600, 300, 170, 80);
-        mComm = new CommunicationManager();
-        boolean status = mComm.connect("192.168.2.9", 9999);
-        System.out.println("status = " + status);
+		mComm = comm;
+        mJoystick = new Joystick(600, 300, 170, 80);        
 	}
 
     public boolean onTouchEvent(MotionEvent event) {

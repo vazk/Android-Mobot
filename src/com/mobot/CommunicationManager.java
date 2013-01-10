@@ -13,8 +13,9 @@ public class CommunicationManager {
 	public native void close();
 
 
-	public native void commandQuit();
-	public native void commandStop();
-	public native void commandDrive(float left, float right);
+	public native boolean commandAck();
+	public native boolean commandQuit();
+	public native boolean commandStop();
+	public native boolean commandDrive(float left, float right);
 	
 }
