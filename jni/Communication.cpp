@@ -33,7 +33,7 @@ JNIEXPORT void JNICALL Java_com_mobot_CommunicationManager_close(JNIEnv* env, jo
 JNIEXPORT bool JNICALL Java_com_mobot_CommunicationManager_commandAck(JNIEnv* env, jobject thiz)
 {
     Command cmd;
-    cmd.data.type = Command::CMD_QUIT;
+    cmd.data.type = Command::CMD_ACK;
     return socketManager.write(cmd.data.raw, Command::COMMAND_PACKET_LENGTH) == Command::COMMAND_PACKET_LENGTH;
 }
 
