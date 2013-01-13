@@ -9,18 +9,23 @@ import android.graphics.Shader;
 public class Joystick {
 
 	public class Head {
-		float mRadius;
-		float mShiftX;
-		float mShiftY;
+		int mRadius;
+		int mShiftX;
+		int mShiftY;
+		int mColor;
 
-		public Head(float radius) {
+		public Head() {
 			mShiftX = 0;
 			mShiftY = 0;
+			mRadius = 0;
+			mColor = Color.GRAY;
+		}
+		public void setRadius(int radius) {
 			mRadius = radius;
 		}
 		public void render(Canvas canvas) {
 			Paint p = new Paint();
-			p.setShader(new RadialGradient(mCenterX + mShiftX, mCenterY + mShiftY, 1.6f*mRadius, Color.RED, Color.BLACK, Shader.TileMode.MIRROR));
+			p.setShader(new RadialGradient(mCenterX + mShiftX, mCenterY + mShiftY, 1.6f*mRadius, mColor, Color.BLACK, Shader.TileMode.MIRROR));
 			canvas.drawCircle(mCenterX + mShiftX, mCenterY + mShiftY, mRadius, p);
 			p.setColor(Color.BLACK);
 			p.setStyle(Paint.Style.STROKE);		
@@ -29,22 +34,25 @@ public class Joystick {
 		}
 	}
 
-	float mCenterX;
-	float mCenterY;
-	float mRadius;
+	int mCenterX;
+	int mCenterY;
+	int mRadius;	
 	Head mHead; 
 	
 	
 	
-	public Joystick(float centerX, float centerY, float baseRadius, float headRadius) {
+	public Joystick()
+	{
+		mHead = new Head();
+		setup(0, 0, 0, 0);
+	}
+	
+	public void setup(int centerX, int centerY, int baseRadius, int headRadius) 
+	{
 		mCenterX = centerX;
 		mCenterY = centerY;
 		mRadius = baseRadius;
-		mHead = new Head(headRadius);
-	}
-	
-	public void step() {
-		
+		mHead.setRadius(headRadius);
 	}
 	
 	public boolean checkTouch(float x, float y) {
@@ -60,6 +68,11 @@ public class Joystick {
 	        mHead.mShiftX /= factor;
 			mHead.mShiftY /= factor;
 		}
+	}
+	
+	public void setHeadColor(int col)
+	{
+		mHead.mColor = col;
 	}
 	
 	public void resetHead()

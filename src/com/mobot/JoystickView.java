@@ -1,28 +1,28 @@
 package com.mobot;
 
 import android.content.Context;
-import android.content.Intent;
 import android.graphics.Canvas;
-import android.graphics.Paint;
-import android.graphics.Rect;
+import android.graphics.Color;
 import android.view.MotionEvent;
-import android.view.SurfaceHolder;
-import android.view.SurfaceView;
 import android.view.View;
 
 
 public class JoystickView extends View
-{
-    
+{    
     volatile boolean touched = false;
     volatile float touched_x, touched_y;
     private Joystick mJoystick;
     private CommunicationManager mComm;
     
+    public enum Status {
+    	ENABLED,
+    	DISABLED
+    }
+    
 	public JoystickView(Context context, CommunicationManager comm) {
 		super(context);
 		mComm = comm;
-        mJoystick = new Joystick(600, 300, 170, 80);        
+		mJoystick = new Joystick();
 	}
 
     public boolean onTouchEvent(MotionEvent event) {
@@ -91,4 +91,17 @@ public class JoystickView extends View
 	    mComm.commandDrive(0, 0);
     	invalidate();
     }
+    
+    void setStatus(Status st) 
+    {
+    	int col = (st == Status.ENABLED) ? Color.RED : Color.GRAY;
+    	mJoystick.setHeadColor(col);
+    }
+    
+    protected void onSizeChanged(int xNew, int yNew, int xOld, int yOld){
+        super.onSizeChanged(xNew, yNew, xOld, yOld);
+		int jRadius = (int) (Math.min(xNew, yNew) * 0.35);
+        mJoystick.setup(xNew/2, yNew/2, jRadius, jRadius/2);  
+   }
+
 }

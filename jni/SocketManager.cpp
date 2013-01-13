@@ -5,7 +5,6 @@
 #include <sys/types.h> 
 #include <sys/socket.h>
 #include <netinet/in.h>
-#include <arpa/inet.h>
 #include <netdb.h> 
 #include <iostream>
 
@@ -88,7 +87,7 @@ ssize_t
 SocketManager::write(const uint8_t* data, size_t size)
 {
     ssize_t numWrite = ::write(mConSocket, data, size);
-    mIsConnected = numWrite < 0;
+    mIsConnected = (numWrite == size);
     return numWrite;
 }
 
@@ -96,15 +95,16 @@ ssize_t
 SocketManager::read(uint8_t* data, size_t size)
 {
     ssize_t numRead = ::read(mConSocket, data, size);
-    mIsConnected = numRead < 0;
+    mIsConnected = (numRead == size);
     return numRead;
-    
 }
 
 void 
 SocketManager::close()
 {
+    shutdown(mConSocket, 2);
     ::close(mConSocket);
+    shutdown(mSocket, 2);
     ::close(mSocket);
     mIsConnected = false;
 }

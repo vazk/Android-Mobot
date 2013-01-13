@@ -11,8 +11,10 @@ public class CommunicationManager {
 	public native int write(byte[] data, int size);
 	public native int read(byte[] da, int size);
 	public native void close();
+	public native boolean isConnected();
 
 
+	public native boolean commandHeartBeat();
 	public native boolean commandAck();
 	public native boolean commandQuit();
 	public native boolean commandStop();

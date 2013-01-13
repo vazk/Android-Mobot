@@ -1,8 +1,8 @@
 package com.mobot;
 
+import com.mobot.JoystickView.Status;
+
 import android.app.Activity;
-import android.content.Context;
-import android.content.Intent;
 import android.os.Bundle;
 
 public class JoystickActivity extends Activity {
@@ -12,28 +12,31 @@ public class JoystickActivity extends Activity {
     JoystickView 			     mJView;
     
     private class HeartBitThread extends Thread {
-    	volatile boolean shouldStop;
-    	
+    	volatile boolean shouldStop;    	
     	public void run() {
     		shouldStop = false;
     		while(!shouldStop) {
-    			boolean status = mComm.commandAck();
-    			if(status == false) {
-    				attemptReconnect();
-    				shouldStop = true;
-    			}
-    			try {
-    				Thread.sleep(150);
-    			} catch (InterruptedException e) {
-    				e.printStackTrace();
-    			}    			
+   				if(mComm.isConnected() == false) {
+   					connect();
+   	    			sleep(300);
+   					continue;
+   				}    				
+   				mComm.commandHeartBeat();   					
     			System.out.println("Sending ping...");
+    			sleep(150);
     		}
     	}    	
+		public void sleep(int milliseconds)
+		{ 
+			try {
+				Thread.sleep(milliseconds);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}  
+    	}
     	public void shutdown() {
     		shouldStop = true;
-    	}
-    	
+    	}    	
     }
 
 	public void onCreate(Bundle savedInstanceState) {
@@ -45,10 +48,8 @@ public class JoystickActivity extends Activity {
 	}
 	
 	public void onStart() {	
-		super.onStart();
-        boolean status = mComm.connect("192.168.2.6", 9999);
-        System.out.println("Communication: connecting [" + status + "].");	    
-	    mHBThread.start();
+        super.onStart();
+        mHBThread.start();		
 	}
      
     public void onStop() {
@@ -57,12 +58,17 @@ public class JoystickActivity extends Activity {
     	mHBThread.shutdown();
     	mComm.close();
     }
-
-	public void attemptReconnect() {
-		System.out.println("Going back to reconnect...");		
-		final Context context = this; 
-		Intent intent = new Intent(context, MainActivity.class);
-		startActivity(intent);
+    
+	private void connect() {
+		boolean status = mComm.connect("192.168.2.6", 9999);
+		System.out.println("Communication: connecting [" + status + "].");
+		Status st = Status.DISABLED;		
+		if(status == true) {
+			st = Status.ENABLED;
+		}
+		mJView.setStatus(st);
+		//mJView.resetJoystickHeadPos();
+		mJView.postInvalidate();
 	}
-
+	
 }

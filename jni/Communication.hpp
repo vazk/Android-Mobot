@@ -13,8 +13,10 @@ extern "C" {
     JNIEXPORT int  JNICALL Java_com_mobot_CommunicationManager_write(JNIEnv* env, jobject thiz, jbyteArray data, jint size);
     JNIEXPORT int  JNICALL Java_com_mobot_CommunicationManager_read(JNIEnv* env, jobject thiz, jbyteArray da, jint size);
     JNIEXPORT void JNICALL Java_com_mobot_CommunicationManager_close(JNIEnv* env, jobject thiz);
+    JNIEXPORT bool JNICALL Java_com_mobot_CommunicationManager_isConnected(JNIEnv* env, jobject thiz);
 
 
+    JNIEXPORT bool Java_com_mobot_CommunicationManager_commandHeartBeat(JNIEnv* env, jobject thiz);
     JNIEXPORT bool Java_com_mobot_CommunicationManager_commandAck(JNIEnv* env, jobject thiz);
     JNIEXPORT bool Java_com_mobot_CommunicationManager_commandQuit(JNIEnv* env, jobject thiz);
     JNIEXPORT bool Java_com_mobot_CommunicationManager_commandStop(JNIEnv* env, jobject thiz);
