@@ -12,16 +12,16 @@ public class JoystickView extends View
     volatile boolean touched = false;
     volatile float touched_x, touched_y;
     private Joystick mJoystick;
-    private CommunicationManager mComm;
+    private volatile RobotDriver mRobot;
     
     public enum Status {
     	ENABLED,
     	DISABLED
     }
     
-	public JoystickView(Context context, CommunicationManager comm) {
+	public JoystickView(Context context, RobotDriver robot) {
 		super(context);
-		mComm = comm;
+		mRobot = robot;
 		mJoystick = new Joystick();
 	}
 
@@ -81,14 +81,14 @@ public class JoystickView extends View
 	    right = clampOne(right);
 	    
 	    System.out.println(left + ", " + right);
-	    mComm.commandDrive(left, right);
+	    mRobot.commandDrive(left, right);
     	invalidate();
     }
     
     void resetJoystickHeadPos()
     {
 		mJoystick.resetHead();
-	    mComm.commandDrive(0, 0);
+	    mRobot.commandDrive(0, 0);
     	invalidate();
     }
     
