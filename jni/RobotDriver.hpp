@@ -33,8 +33,8 @@ private:
     pthread_t       mHeartbeatThread;
     std::string     mIP;
     int             mPort;
-    static const int HEARTBEAT_TIMEOUT_MS = 150;
-    static const int RECONNECT_TIMEOUT_MS = 300;
+    static const int HEARTBEAT_TIMEOUT_MS = 300;
+    static const int RECONNECT_TIMEOUT_MS = 500;
 };
 
 extern "C" {
