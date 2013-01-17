@@ -9,8 +9,11 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.net.wifi.ScanResult;
 import android.net.wifi.WifiConfiguration;
+import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
 import android.os.Bundle;
 import android.view.LayoutInflater;
@@ -148,14 +151,55 @@ public class APSelectionActivity extends ListActivity {
              System.out.println("WifiPreference: enableNetwork returned " + b );  
              boolean es = wifi.saveConfiguration();
              System.out.println("WifiPreference: saveConfiguration returned " + es );
-
-             
-             boolean ds = wifi.disconnect();
-             System.out.println("WifiPreference: disconnection returned " + ds );
-
-             boolean rs = wifi.reconnect();
-             System.out.println("WifiPreference: disconnection returned " + rs );
-
          }
+
+         /// THIS CODE IS NOT COMPELETELY FUNCTIONAL. FOR THAT REASON COMMENTING OUT...
+         /*
+         WifiManager.WifiLock logk = wifi.createWifiLock(WifiManager.WIFI_MODE_FULL, "RobotLock");
+         boolean rs = wifi.reconnect();
+         System.out.println("WifiPreference: connection returned " + rs );
+         
+         int count = 0;
+         wifi.setWifiEnabled(true);
+         
+         ConnectivityManager connectivityManager = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
+         NetworkInfo networkInfo = null;
+         if (connectivityManager != null) {
+            networkInfo = connectivityManager.getActiveNetworkInfo();
+         }
+         return networkInfo == null ? false : networkInfo.getState() == NetworkInfo.State.CONNECTED;
+         
+         while ((wifi.isWifiEnabled() == false) && (networkInfo.getState() != NetworkInfo.State.CONNECTED)) {
+             if (count >= 10) {
+               System.out.println("Took too long to enable wi-fi, quitting");
+               return;
+             }
+             System.out.println("Still waiting for wi-fi to enable...");
+             try {
+               Thread.sleep(1000L);
+             } catch (InterruptedException ie) {
+               // continue
+             }
+             count++;
+         }WifiInfo myWifiInfo = wifi.getConnectionInfo();
+         int myIp = myWifiInfo.getIpAddress();
+
+         int intMyIp3 = myIp/0x1000000;
+         int intMyIp3mod = myIp%0x1000000;
+        
+         int intMyIp2 = intMyIp3mod/0x10000;
+         int intMyIp2mod = intMyIp3mod%0x10000;
+        
+         int intMyIp1 = intMyIp2mod/0x100;
+         int intMyIp0 = intMyIp2mod%0x100;
+        
+         String textIp = String.valueOf(intMyIp0)
+        		 		+ "." + String.valueOf(intMyIp1)
+        		 		+ "." + String.valueOf(intMyIp2)
+   		 				+ "." + String.valueOf(intMyIp3);
+           
+         
+         System.out.println("IP address: " + textIp );
+         */
      }
 }
