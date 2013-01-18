@@ -74,8 +74,9 @@ public class JoystickView extends View
 		mJoystick.moveHead(tx-touched_x, ty-touched_y);
 	    float str_mag = (-mJoystick.shiftY())/mJoystick.maxOffset();
 	    float rot_mag = (mJoystick.shiftX())/mJoystick.maxOffset();
-	    float left = str_mag - rot_mag/3;
-	    float right = str_mag + rot_mag/3;
+	    int sign = str_mag >= 0 ? 1 : -1;
+	    float left = str_mag - sign*rot_mag/2;
+	    float right = str_mag + sign*rot_mag/2;
     
 	    left = clampOne(left);
 	    right = clampOne(right);
