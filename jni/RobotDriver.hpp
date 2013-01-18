@@ -10,6 +10,11 @@
 
 class RobotDriver
 {
+    enum State {
+        STOP_REQUESTED,
+        STOPPED,
+        RUNNING,
+    };
 public:
     RobotDriver();
     bool start(const std::string& ip, int port);
@@ -27,7 +32,8 @@ private:
     static void* heartbeatFunc(void*);
 
 private:
-    bool            mShouldStop;
+    //bool            mShouldStop;
+    State           mState;
     SocketManager   mSocketManager;
     pthread_mutex_t mMutex;
     pthread_t       mHeartbeatThread;

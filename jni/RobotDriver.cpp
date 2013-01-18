@@ -5,6 +5,7 @@
 RobotDriver* gRobot = NULL;
 
 RobotDriver::RobotDriver()
+ : mState(STOPPED)
 {
     Logger::initialize(LDEBUG);
     pthread_mutex_init(&mMutex, NULL);
@@ -36,8 +37,10 @@ void*
 RobotDriver::heartbeatFunc(void* ptr)
 {
     RobotDriver* rd = (RobotDriver*)ptr;
-    rd->mShouldStop = false;
-    while(!rd->mShouldStop) {
+    //rd->mShouldStop = false;
+    //while(!rd->mShouldStop) {
+    rd->mState = RUNNING;
+    while(rd->mState == RUNNING) {
 
         if(!rd->mSocketManager.isConnected()) {
             LOG(LINFO)<<"HB: trying to (re)connect"<<std::endl;
@@ -50,12 +53,17 @@ RobotDriver::heartbeatFunc(void* ptr)
         rd->sendHeartbitCommand();
         usleep(RobotDriver::HEARTBEAT_TIMEOUT_MS * 1000);
     }
+    rd->mState = STOPPED;
     return NULL;
 }
 
 bool
 RobotDriver::startHeartbeat() 
 {
+    if(mState == RUNNING) {
+        LOG(LINFO)<<"RD: heartbeat is already started."<<std::endl;
+        return true;
+    }
     LOG(LINFO)<<"RD: starting heartbeat"<<std::endl;
     if(pthread_create(&mHeartbeatThread, NULL, heartbeatFunc, this)) {
         LOG(LERROR)<<"failed to create the heartbeat thread..."<<std::endl;
@@ -68,7 +76,8 @@ void
 RobotDriver::stopHeartbeat() 
 {
     LOG(LINFO)<<"RD: stopping heartbeat"<<std::endl;
-    mShouldStop = true;
+    //mShouldStop = true;
+    mState = STOP_REQUESTED;
     pthread_join(mHeartbeatThread, NULL);
 }
 
