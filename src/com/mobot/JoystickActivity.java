@@ -18,13 +18,13 @@ public class JoystickActivity extends Activity {
         mRobot = new RobotDriver();
 	    mJView = new JoystickView(this, mRobot);
 	    setContentView(mJView);	    
-	    mRobot.start("192.168.2.6", 9999);
 	    mHandler = new Handler();
 	    autoRefresh();
 	}
 	
 	public void onStart() {		
         super.onStart();
+        mRobot.start("192.168.2.6", 9999);
 	}
 
     public void onPause() {
