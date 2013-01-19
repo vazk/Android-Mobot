@@ -37,8 +37,6 @@ void*
 RobotDriver::heartbeatFunc(void* ptr)
 {
     RobotDriver* rd = (RobotDriver*)ptr;
-    //rd->mShouldStop = false;
-    //while(!rd->mShouldStop) {
     rd->mState = RUNNING;
     while(rd->mState == RUNNING) {
 
@@ -76,7 +74,6 @@ void
 RobotDriver::stopHeartbeat() 
 {
     LOG(LINFO)<<"RD: stopping heartbeat"<<std::endl;
-    //mShouldStop = true;
     mState = STOP_REQUESTED;
     pthread_join(mHeartbeatThread, NULL);
 }

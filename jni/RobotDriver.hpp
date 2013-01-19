@@ -32,7 +32,6 @@ private:
     static void* heartbeatFunc(void*);
 
 private:
-    //bool            mShouldStop;
     State           mState;
     SocketManager   mSocketManager;
     pthread_mutex_t mMutex;
