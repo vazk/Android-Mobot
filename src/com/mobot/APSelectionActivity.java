@@ -9,7 +9,6 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.net.wifi.ScanResult;
 import android.net.wifi.WifiConfiguration;
@@ -22,7 +21,6 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
-import android.widget.Button;
 import android.widget.ListView;
 import android.widget.TextView;
 
@@ -55,27 +53,91 @@ public class APSelectionActivity extends ListActivity {
         }
     }	
 	
-    private APItemAdapter  mAdapter;
-    private ProgressDialog mProgressDialog;
-	
-    private WifiManager    mMainWifi;
-    private WifiReceiver   mReceiverWifi;
+    private APItemAdapter    mAdapter;
+    private ProgressDialog   mProgressDialog;
+	private WifiManager      mMainWifi;
+    private WifiReceiver     mWifiReceiver;
+    private NetStatReceiver  mNetStatReceiver;
     private ArrayList<ScanResult> mItemList;
+
+    
+    
+    private class WifiReceiver extends BroadcastReceiver {
+        public void onReceive(Context c, Intent intent) {
+        	List<ScanResult> wifiList = mMainWifi.getScanResults();
+            mAdapter.clear();
+            mAdapter.notifyDataSetChanged();
+            for(int i = 0; i < wifiList.size(); i++){
+                ScanResult scanResult = wifiList.get(i);                
+                mAdapter.add(scanResult);
+            }
+            mAdapter.notifyDataSetChanged();
+            mProgressDialog.dismiss();
+            unregisterReceiver(mWifiReceiver);
+        }
+    }
+    
+    private class NetStatReceiver extends BroadcastReceiver {
+        public void onReceive(Context context, Intent intent) {
+            mProgressDialog.dismiss();
+
+            final String action = intent.getAction();
+            System.out.println("Action: " + action	.toString());
+            
+            if (action.equals(WifiManager.NETWORK_STATE_CHANGED_ACTION)) {
+           	    
+            	NetworkInfo nwInfo = intent.getParcelableExtra(WifiManager.EXTRA_NETWORK_INFO);
+           	    System.out.println("nwInfo: " + nwInfo.getState());
+           	    
+           	    if(NetworkInfo.State.CONNECTING.equals(nwInfo.getState())){
+           	    	mProgressDialog = ProgressDialog.show(APSelectionActivity.this, "Hold on...", "Connecting to the network...", true);
+           	        System.out.println("CONNECTING...");
+           	    } else 
+        	    if(NetworkInfo.State.CONNECTED.equals(nwInfo.getState())){
+                    WifiManager wifi = (WifiManager)context.getSystemService(Context.WIFI_SERVICE);
+
+                	WifiInfo myWifiInfo = wifi.getConnectionInfo();
+                    int ip = myWifiInfo.getIpAddress();
+                    int ip3 = ip/0x1000000;
+                    int ip3mod = ip%0x1000000;
+                    int ip2 = ip3mod/0x10000;
+                    int ip2mod = ip3mod%0x10000;
+                    int ip1 = ip2mod/0x100;
+                    int ip0 = ip2mod%0x100;
+                    if(ip0 != 0 || ip1 != 0 || ip2 != 0 || ip3 != 0) {                        
+                        System.out.println("IP address: " + ip0 + "." + ip1 + "." + ip2 + "." + ip3);
+                        unregisterReceiver(mNetStatReceiver);
+                    } else {
+                    	System.out.println("Received fake IP");
+                    }
+                    mProgressDialog.dismiss();
+                } else {
+                    System.out.println("DISCONNECTED!");
+                    mProgressDialog.dismiss();
+                }
+            }
+        }
+    }; 
+    
+    
+    
+    
+    
+    
+    
         
     public void onCreate(Bundle savedInstanceState) {
        super.onCreate(savedInstanceState);       
        setContentView(R.layout.main);  
        mItemList = new ArrayList<ScanResult>();
        mAdapter = new APItemAdapter(this, R.layout.aprow, mItemList);
-       setListAdapter(mAdapter);
-       
+       setListAdapter(mAdapter);       
        mMainWifi = (WifiManager) getSystemService(Context.WIFI_SERVICE);
-       mReceiverWifi = new WifiReceiver();
-       registerReceiver(mReceiverWifi, new IntentFilter(WifiManager.SCAN_RESULTS_AVAILABLE_ACTION));
-
-       
-       mMainWifi.startScan();
-       mProgressDialog = ProgressDialog.show(APSelectionActivity.this, "Hold on...", "Scanning access points...", true);
+       mWifiReceiver = new WifiReceiver();
+       mNetStatReceiver = new NetStatReceiver();       
+       registerReceiver(mWifiReceiver, new IntentFilter(WifiManager.SCAN_RESULTS_AVAILABLE_ACTION));
+   	   mMainWifi.startScan();       
+   	   mProgressDialog = ProgressDialog.show(APSelectionActivity.this, "Hold on...", "Scanning access points...", true);
     }
 
     public boolean onCreateOptionsMenu(Menu menu) {
@@ -89,27 +151,15 @@ public class APSelectionActivity extends ListActivity {
     }
 
     protected void onPause() {
-        unregisterReceiver(mReceiverWifi);
+    	unregisterReceiver(mWifiReceiver);
+    	unregisterReceiver(mNetStatReceiver);
+        mProgressDialog.dismiss();
         super.onPause();
     }
 
     protected void onResume() {
-        registerReceiver(mReceiverWifi, new IntentFilter(WifiManager.SCAN_RESULTS_AVAILABLE_ACTION));
+        registerReceiver(mWifiReceiver, new IntentFilter(WifiManager.SCAN_RESULTS_AVAILABLE_ACTION));        
         super.onResume();
-    }
-    
-    class WifiReceiver extends BroadcastReceiver {
-        public void onReceive(Context c, Intent intent) {
-        	List<ScanResult> wifiList = mMainWifi.getScanResults();
-            mAdapter.clear();
-            mAdapter.notifyDataSetChanged();
-            for(int i = 0; i < wifiList.size(); i++){
-                ScanResult scanResult = wifiList.get(i);                
-                mAdapter.add(scanResult);
-            }
-            mAdapter.notifyDataSetChanged();
-            mProgressDialog.dismiss();
-        }
     }
     
     public void onListItemClick(ListView parent, View v, int position, long id) {  
@@ -118,88 +168,37 @@ public class APSelectionActivity extends ListActivity {
     	tryWiFiConnect(this, scanResult.SSID);
 	}
     
-    private static void tryWiFiConnect(Context context, String ssid)
+    
+       
+    
+    private void tryWiFiConnect(Context context, String ssid)
     {
-         WifiManager wifi = (WifiManager)context.getSystemService(context.WIFI_SERVICE);
-         WifiConfiguration wc = new WifiConfiguration(); 
-         wc.SSID = "\"" + ssid + "\"";
-         wc.hiddenSSID = true;
-         wc.status = WifiConfiguration.Status.ENABLED;     
-         wc.priority = 40;
-         wc.allowedKeyManagement.set(WifiConfiguration.KeyMgmt.WPA_PSK);
-         wc.allowedProtocols.set(WifiConfiguration.Protocol.WPA);
-         wc.allowedAuthAlgorithms.set(WifiConfiguration.AuthAlgorithm.OPEN);
-         //wc.preSharedKey = "\"" + deviceConfig.wireless_passkey + "\"";// 
-         System.out.println("ssid : " + wc.SSID);
-
-         List<WifiConfiguration> netWorkList =  wifi.getConfiguredNetworks();
-         WifiConfiguration wifiCong = null;
-
-         if (netWorkList != null) {
-             for(WifiConfiguration item:netWorkList) {
-                 if (item.SSID.equalsIgnoreCase("\"" + ssid + "\"")) {
-                     wifiCong = item;
-                 }
-             }
-         }
-
-         if (wifiCong == null) {
-             boolean res1 = wifi.setWifiEnabled(true);
-             int res = wifi.addNetwork(wc);
-             System.out.println("WifiPreference: add Network returned " + res );
-             boolean b = wifi.enableNetwork(res, true);   
-             System.out.println("WifiPreference: enableNetwork returned " + b );  
-             boolean es = wifi.saveConfiguration();
-             System.out.println("WifiPreference: saveConfiguration returned " + es );
-         }
-
-         /// THIS CODE IS NOT COMPELETELY FUNCTIONAL. FOR THAT REASON COMMENTING OUT...
-         /*
-         WifiManager.WifiLock logk = wifi.createWifiLock(WifiManager.WIFI_MODE_FULL, "RobotLock");
-         boolean rs = wifi.reconnect();
-         System.out.println("WifiPreference: connection returned " + rs );
-         
-         int count = 0;
-         wifi.setWifiEnabled(true);
-         
-         ConnectivityManager connectivityManager = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
-         NetworkInfo networkInfo = null;
-         if (connectivityManager != null) {
-            networkInfo = connectivityManager.getActiveNetworkInfo();
-         }
-         return networkInfo == null ? false : networkInfo.getState() == NetworkInfo.State.CONNECTED;
-         
-         while ((wifi.isWifiEnabled() == false) && (networkInfo.getState() != NetworkInfo.State.CONNECTED)) {
-             if (count >= 10) {
-               System.out.println("Took too long to enable wi-fi, quitting");
-               return;
-             }
-             System.out.println("Still waiting for wi-fi to enable...");
-             try {
-               Thread.sleep(1000L);
-             } catch (InterruptedException ie) {
-               // continue
-             }
-             count++;
-         }WifiInfo myWifiInfo = wifi.getConnectionInfo();
-         int myIp = myWifiInfo.getIpAddress();
-
-         int intMyIp3 = myIp/0x1000000;
-         int intMyIp3mod = myIp%0x1000000;
+        WifiManager wifi = (WifiManager)context.getSystemService(context.WIFI_SERVICE);
+        WifiConfiguration wc = new WifiConfiguration(); 
+        wc.SSID = "\"" + ssid + "\"";
+        wc.hiddenSSID = true;
+        wc.status = WifiConfiguration.Status.ENABLED;     
+        wc.priority = 40;
+        wc.allowedKeyManagement.set(WifiConfiguration.KeyMgmt.WPA_PSK);
+        wc.allowedProtocols.set(WifiConfiguration.Protocol.WPA);
+        wc.allowedAuthAlgorithms.set(WifiConfiguration.AuthAlgorithm.OPEN);
+        //wc.preSharedKey = "\"" + deviceConfig.wireless_passkey + "\"";// 
+        System.out.println("ssid : " + wc.SSID);
+        List<WifiConfiguration> netWorkList =  wifi.getConfiguredNetworks();
         
-         int intMyIp2 = intMyIp3mod/0x10000;
-         int intMyIp2mod = intMyIp3mod%0x10000;
-        
-         int intMyIp1 = intMyIp2mod/0x100;
-         int intMyIp0 = intMyIp2mod%0x100;
-        
-         String textIp = String.valueOf(intMyIp0)
-        		 		+ "." + String.valueOf(intMyIp1)
-        		 		+ "." + String.valueOf(intMyIp2)
-   		 				+ "." + String.valueOf(intMyIp3);
-           
-         
-         System.out.println("IP address: " + textIp );
-         */
-     }
+        WifiConfiguration wifiCong = null;
+        if (netWorkList != null) {
+            for(WifiConfiguration item:netWorkList) {
+                if(item.SSID != null && item.SSID.equalsIgnoreCase("\"" + ssid + "\"")) {
+                    wifiCong = item;
+                }
+            }
+        }
+        wifi.setWifiEnabled(true);
+        int res = wifi.addNetwork(wc);
+        wifi.enableNetwork(res, true);   
+        wifi.saveConfiguration();
+        registerReceiver(mNetStatReceiver, new IntentFilter(WifiManager.NETWORK_STATE_CHANGED_ACTION));
+        mProgressDialog = ProgressDialog.show(APSelectionActivity.this, "Hold on...", "Connecting to the network...", true);
+    }
 }
