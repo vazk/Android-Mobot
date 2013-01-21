@@ -2,7 +2,10 @@ package com.mobot;
  
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Timer;
+import java.util.TimerTask;
 
+import android.app.AlertDialog;
 import android.app.ListActivity;
 import android.app.ProgressDialog;
 import android.content.BroadcastReceiver;
@@ -25,8 +28,18 @@ import android.widget.ListView;
 import android.widget.TextView;
 
 public class APSelectionActivity extends ListActivity {
+
+	private APItemAdapter    mAdapter;
+    private ProgressDialog   mProgressDialog;
+	private WifiManager      mMainWifi;
+    private WifiReceiver     mWifiReceiver;
+    private NetStatReceiver  mNetStatReceiver;
+    private ArrayList<ScanResult> mItemList;
+    private Timer 			 mTimer;
     
-    
+ 
+
+        
     public class APItemAdapter extends ArrayAdapter<ScanResult> {
         private ArrayList<ScanResult> items;
         public APItemAdapter(Context context, int textViewResourceId, ArrayList<ScanResult> items) {
@@ -52,19 +65,36 @@ public class APSelectionActivity extends ListActivity {
         	items.add(sr);
         }
     }	
-	
-    private APItemAdapter    mAdapter;
-    private ProgressDialog   mProgressDialog;
-	private WifiManager      mMainWifi;
-    private WifiReceiver     mWifiReceiver;
-    private NetStatReceiver  mNetStatReceiver;
-    private ArrayList<ScanResult> mItemList;
-
     
+    private class NetStatReceiver extends BroadcastReceiver {
+        public void onReceive(Context context, Intent intent) {
+           
+            final String action = intent.getAction();
+            System.out.println("Action: " + action	.toString());
+            System.out.println("nwInfo: " + intent.getParcelableExtra(WifiManager.EXTRA_NETWORK_INFO).toString());
+            
+            if (action.equals(WifiManager.NETWORK_STATE_CHANGED_ACTION)) {           	    
+            	NetworkInfo nwInfo = intent.getParcelableExtra(WifiManager.EXTRA_NETWORK_INFO);
+           	    System.out.println("nwInfo: " + nwInfo.getState());
+           	    
+           	    switch(nwInfo.getState()) {
+           	    	case CONNECTED:
+            	    	connectToRobot(context);            	    	
+           	    		break;
+           	    	case CONNECTING:
+               	        System.out.println("CONNECTING...");
+           	    		break;
+           	    	default:
+                        System.out.println("DISCONNECTED!");
+           	    }
+            }
+        }
+    }; 
     
     private class WifiReceiver extends BroadcastReceiver {
         public void onReceive(Context c, Intent intent) {
         	List<ScanResult> wifiList = mMainWifi.getScanResults();
+        	boolean wasEmpty = mAdapter.items.isEmpty();
             mAdapter.clear();
             mAdapter.notifyDataSetChanged();
             for(int i = 0; i < wifiList.size(); i++){
@@ -72,60 +102,115 @@ public class APSelectionActivity extends ListActivity {
                 mAdapter.add(scanResult);
             }
             mAdapter.notifyDataSetChanged();
-            mProgressDialog.dismiss();
-            unregisterReceiver(mWifiReceiver);
-        }
-    }
-    
-    private class NetStatReceiver extends BroadcastReceiver {
-        public void onReceive(Context context, Intent intent) {
-            mProgressDialog.dismiss();
-
-            final String action = intent.getAction();
-            System.out.println("Action: " + action	.toString());
-            
-            if (action.equals(WifiManager.NETWORK_STATE_CHANGED_ACTION)) {
-           	    
-            	NetworkInfo nwInfo = intent.getParcelableExtra(WifiManager.EXTRA_NETWORK_INFO);
-           	    System.out.println("nwInfo: " + nwInfo.getState());
-           	    
-           	    if(NetworkInfo.State.CONNECTING.equals(nwInfo.getState())){
-           	    	mProgressDialog = ProgressDialog.show(APSelectionActivity.this, "Hold on...", "Connecting to the network...", true);
-           	        System.out.println("CONNECTING...");
-           	    } else 
-        	    if(NetworkInfo.State.CONNECTED.equals(nwInfo.getState())){
-                    WifiManager wifi = (WifiManager)context.getSystemService(Context.WIFI_SERVICE);
-
-                	WifiInfo myWifiInfo = wifi.getConnectionInfo();
-                    int ip = myWifiInfo.getIpAddress();
-                    int ip3 = ip/0x1000000;
-                    int ip3mod = ip%0x1000000;
-                    int ip2 = ip3mod/0x10000;
-                    int ip2mod = ip3mod%0x10000;
-                    int ip1 = ip2mod/0x100;
-                    int ip0 = ip2mod%0x100;
-                    if(ip0 != 0 || ip1 != 0 || ip2 != 0 || ip3 != 0) {                        
-                        System.out.println("IP address: " + ip0 + "." + ip1 + "." + ip2 + "." + ip3);
-                        unregisterReceiver(mNetStatReceiver);
-                    } else {
-                    	System.out.println("Received fake IP");
-                    }
-                    mProgressDialog.dismiss();
-                } else {
-                    System.out.println("DISCONNECTED!");
-                    mProgressDialog.dismiss();
-                }
+            if(wasEmpty) {
+            	dismissProgress();
             }
         }
-    }; 
-    
-    
-    
-    
-    
-    
-    
+    }
+	
+    private void connectToRobot(Context context) {
+    	deactivateNetStatReceiver();
+        WifiManager wifi = (WifiManager)context.getSystemService(Context.WIFI_SERVICE);
+    	WifiInfo myWifiInfo = wifi.getConnectionInfo();
+        long ip = myWifiInfo.getIpAddress();
+        /// handle negative numbers (how the hell can this number be negative?)
+        if(ip < 0) {
+        	ip += 0x100000000L;
+        }
         
+        long ip3 = ip/0x1000000;
+        long ip3mod = ip%0x1000000;
+        long ip2 = ip3mod/0x10000;
+        long ip2mod = ip3mod%0x10000;
+        long ip1 = ip2mod/0x100;
+        long ip0 = ip2mod%0x100;
+                
+        if(ip0 != 0 || ip1 != 0 || ip2 != 0 || ip3 != 0) {
+        	dismissProgress();
+        	resetTimer();
+            showProgress("One last step...", "Connecting to the robot...");
+            mTimer.schedule(new TimerTask() { public void run() { runOnUiThread(RobotTimeoutFunc); } }, 1000);
+            System.out.println("Robot timer scheduling...");
+
+            System.out.println("IP address: " + ip0 + "." + ip1 + "." + ip2 + "." + ip3);
+            String robotIp = String.valueOf(ip0) + "." + String.valueOf(ip1) + "." + String.valueOf(ip2) + ".1";
+            System.out.println("trying to connect to [" + robotIp + ":9999]");
+
+            class RobotStarter implements Runnable {
+                String robotIp;
+                RobotStarter(String ip) { 
+                	robotIp = ip; 
+                }
+                public void run() {
+                	System.out.println("RobotStarter running......");
+                    RobotDriver.sRobot.start(robotIp, 9999);              	
+                }
+            }
+            Thread t = new Thread(new RobotStarter(robotIp));
+            t.start();
+            System.out.println("RobotStarter is started...");
+        }       	
+    }
+
+    private void connectToWiFiAP(Context context, String ssid) {
+    	showProgress("Hold on...", "Connecting to the network...");
+        WifiManager wifi = (WifiManager)context.getSystemService(Context.WIFI_SERVICE);
+        WifiConfiguration wc = new WifiConfiguration(); 
+        wc.SSID = "\"" + ssid + "\"";
+        wc.hiddenSSID = true;
+        wc.status = WifiConfiguration.Status.DISABLED;     
+        wc.priority = 40;
+        
+        wc.allowedKeyManagement.set(WifiConfiguration.KeyMgmt.NONE);
+        wc.allowedProtocols.set(WifiConfiguration.Protocol.RSN);
+        wc.allowedProtocols.set(WifiConfiguration.Protocol.WPA);
+        wc.allowedAuthAlgorithms.clear();
+        wc.allowedPairwiseCiphers.set(WifiConfiguration.PairwiseCipher.CCMP);
+        wc.allowedPairwiseCiphers.set(WifiConfiguration.PairwiseCipher.TKIP);
+        wc.allowedGroupCiphers.set(WifiConfiguration.GroupCipher.WEP40);
+        wc.allowedGroupCiphers.set(WifiConfiguration.GroupCipher.WEP104);
+        wc.allowedGroupCiphers.set(WifiConfiguration.GroupCipher.CCMP);
+        wc.allowedGroupCiphers.set(WifiConfiguration.GroupCipher.TKIP);
+        
+        //wc.preSharedKey = "\"" + deviceConfig.wireless_passkey + "\"";// 
+        System.out.println("ssid : " + wc.SSID);
+
+        wifi.setWifiEnabled(true);
+        int res = wifi.addNetwork(wc);
+        wifi.enableNetwork(res, true);   
+        wifi.saveConfiguration();
+        
+        activateNetStatReceiver();        
+        mTimer.schedule(new TimerTask() { public void run() { runOnUiThread(WiFiTimeoutFunc); } }, 5000);
+        System.out.println("WiFi timer scheduling...");
+    }
+    
+    
+    private Runnable WiFiTimeoutFunc = new Runnable() {
+        public void run() {        	
+        	deactivateNetStatReceiver();
+        	System.out.println("WiFi timout...");
+        	dismissProgress();
+        	resetTimer();
+        	showAlert("Failed to connect to the access point!");
+        }
+    };
+
+    private Runnable RobotTimeoutFunc = new Runnable() {
+        public void run() {
+			dismissProgress(); 
+			resetTimer();
+        	if(RobotDriver.sRobot.isRunning()) {
+            	System.out.println("Connected to the robot!");
+    			Intent intent = new Intent (APSelectionActivity.this, JoystickActivity.class);
+                startActivity(intent);
+            } else {                            	
+            	RobotDriver.sRobot.stop();
+    			showAlert("Failed to connect to the robot!");
+    		}
+        }
+    };
+    
     public void onCreate(Bundle savedInstanceState) {
        super.onCreate(savedInstanceState);       
        setContentView(R.layout.main);  
@@ -134,10 +219,10 @@ public class APSelectionActivity extends ListActivity {
        setListAdapter(mAdapter);       
        mMainWifi = (WifiManager) getSystemService(Context.WIFI_SERVICE);
        mWifiReceiver = new WifiReceiver();
-       mNetStatReceiver = new NetStatReceiver();       
-       registerReceiver(mWifiReceiver, new IntentFilter(WifiManager.SCAN_RESULTS_AVAILABLE_ACTION));
+       //mNetStatReceiver = new NetStatReceiver();       
    	   mMainWifi.startScan();       
-   	   mProgressDialog = ProgressDialog.show(APSelectionActivity.this, "Hold on...", "Scanning access points...", true);
+   	   showProgress("Hold on...", "Scanning access points...");
+       mTimer = new Timer();
     }
 
     public boolean onCreateOptionsMenu(Menu menu) {
@@ -152,8 +237,8 @@ public class APSelectionActivity extends ListActivity {
 
     protected void onPause() {
     	unregisterReceiver(mWifiReceiver);
-    	unregisterReceiver(mNetStatReceiver);
-        mProgressDialog.dismiss();
+    	dismissProgress();
+    	resetTimer();    	
         super.onPause();
     }
 
@@ -165,40 +250,46 @@ public class APSelectionActivity extends ListActivity {
     public void onListItemClick(ListView parent, View v, int position, long id) {  
     	ScanResult scanResult = (ScanResult)mAdapter.getItem(position); 
     	System.out.println("wifi item is clicked! ");
-    	tryWiFiConnect(this, scanResult.SSID);
+    	connectToWiFiAP(this, scanResult.SSID);
 	}
     
-    
-       
-    
-    private void tryWiFiConnect(Context context, String ssid)
-    {
-        WifiManager wifi = (WifiManager)context.getSystemService(context.WIFI_SERVICE);
-        WifiConfiguration wc = new WifiConfiguration(); 
-        wc.SSID = "\"" + ssid + "\"";
-        wc.hiddenSSID = true;
-        wc.status = WifiConfiguration.Status.ENABLED;     
-        wc.priority = 40;
-        wc.allowedKeyManagement.set(WifiConfiguration.KeyMgmt.WPA_PSK);
-        wc.allowedProtocols.set(WifiConfiguration.Protocol.WPA);
-        wc.allowedAuthAlgorithms.set(WifiConfiguration.AuthAlgorithm.OPEN);
-        //wc.preSharedKey = "\"" + deviceConfig.wireless_passkey + "\"";// 
-        System.out.println("ssid : " + wc.SSID);
-        List<WifiConfiguration> netWorkList =  wifi.getConfiguredNetworks();
-        
-        WifiConfiguration wifiCong = null;
-        if (netWorkList != null) {
-            for(WifiConfiguration item:netWorkList) {
-                if(item.SSID != null && item.SSID.equalsIgnoreCase("\"" + ssid + "\"")) {
-                    wifiCong = item;
-                }
-            }
-        }
-        wifi.setWifiEnabled(true);
-        int res = wifi.addNetwork(wc);
-        wifi.enableNetwork(res, true);   
-        wifi.saveConfiguration();
-        registerReceiver(mNetStatReceiver, new IntentFilter(WifiManager.NETWORK_STATE_CHANGED_ACTION));
-        mProgressDialog = ProgressDialog.show(APSelectionActivity.this, "Hold on...", "Connecting to the network...", true);
+    private void showProgress(String title, String content) {
+    	dismissProgress();
+        mProgressDialog = ProgressDialog.show(APSelectionActivity.this, title, content, true);
     }
+    private void dismissProgress() {
+    	if(mProgressDialog != null) {
+    		mProgressDialog.dismiss();
+    	}
+    }
+    
+	private void activateNetStatReceiver() {
+		mNetStatReceiver = new NetStatReceiver();      
+		registerReceiver(mNetStatReceiver, new IntentFilter(WifiManager.NETWORK_STATE_CHANGED_ACTION));
+	}    
+
+	private void deactivateNetStatReceiver() {
+		if(mNetStatReceiver != null) {
+			unregisterReceiver(mNetStatReceiver);
+			mNetStatReceiver = null;
+		}
+	}
+
+	private void showAlert(String msg) {
+
+		AlertDialog.Builder alertDialogBuilder = new AlertDialog.Builder(this);
+		alertDialogBuilder.setTitle(msg);
+		alertDialogBuilder			
+			.setCancelable(false)
+			.setPositiveButton("ok", null);
+		AlertDialog alertDialog = alertDialogBuilder.create();
+		alertDialog.show();		
+	}
+    
+    private void resetTimer() {
+    	mTimer.cancel();
+    	mTimer.purge();
+    	mTimer = new Timer();
+    }
+
 }

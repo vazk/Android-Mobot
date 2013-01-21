@@ -12,16 +12,14 @@ public class JoystickView extends View
     volatile boolean touched = false;
     volatile float touched_x, touched_y;
     private Joystick mJoystick;
-    private volatile RobotDriver mRobot;
     
     public enum Status {
     	ENABLED,
     	DISABLED
     }
     
-	public JoystickView(Context context, RobotDriver robot) {
+	public JoystickView(Context context) {
 		super(context);
-		mRobot = robot;
 		mJoystick = new Joystick();
 	}
 
@@ -74,7 +72,7 @@ public class JoystickView extends View
 		mJoystick.moveHead(tx-touched_x, ty-touched_y);
 	    float str_mag = (-mJoystick.shiftY())/mJoystick.maxOffset();
 	    float rot_mag = (mJoystick.shiftX())/mJoystick.maxOffset();
-	    int sign = str_mag >= 0 ? 1 : -1;
+	    int sign = 1;//str_mag >= 0 ? 1 : -1;
 	    float left = str_mag - sign*rot_mag/2;
 	    float right = str_mag + sign*rot_mag/2;
     
@@ -82,14 +80,14 @@ public class JoystickView extends View
 	    right = clampOne(right);
 	    
 	    System.out.println(left + ", " + right);
-	    mRobot.commandDrive(left, right);
+	    RobotDriver.sRobot.commandDrive(left, right);
     	invalidate();
     }
     
     void resetJoystickHeadPos()
     {
 		mJoystick.resetHead();
-	    mRobot.commandDrive(0, 0);
+		RobotDriver.sRobot.commandDrive(0, 0);
     	invalidate();
     }
     

@@ -6,7 +6,7 @@ public class RobotDriver {
     	System.loadLibrary("RobotComm");
     } 
 
-    RobotDriver() {
+    private RobotDriver() {
     	init();
     }
     /// Initialization
@@ -19,5 +19,7 @@ public class RobotDriver {
 	
 	/// Robot control
 	public native boolean commandDrive(float left, float right);
+	
+	public static RobotDriver sRobot = new RobotDriver(); 
 	
 }
