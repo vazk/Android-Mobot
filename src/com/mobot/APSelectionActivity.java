@@ -25,7 +25,6 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
-import android.widget.TextView;
 
 public class APSelectionActivity extends ListActivity {
 
@@ -34,35 +33,29 @@ public class APSelectionActivity extends ListActivity {
 	private WifiManager      mMainWifi;
     private WifiReceiver     mWifiReceiver;
     private NetStatReceiver  mNetStatReceiver;
-    private ArrayList<ScanResult> mItemList;
+    private ArrayList<APItemView> mItemList;
     private Timer 			 mTimer;
     
- 
-
         
-    public class APItemAdapter extends ArrayAdapter<ScanResult> {
-        private ArrayList<ScanResult> items;
-        public APItemAdapter(Context context, int textViewResourceId, ArrayList<ScanResult> items) {
-                super(context, textViewResourceId, items);
-                this.items = items;
+   	public class APItemAdapter extends ArrayAdapter<APItemView> {
+        private ArrayList<APItemView> mItems;
+   		public APItemAdapter(Context context, int textViewResourceId, ArrayList<APItemView> items) {
+            super(context, textViewResourceId, items);
+            mItems = items;
+            System.out.println("AP size: " + mItems.size()); 
         }    
-        public View getView(int position, View convertView, ViewGroup parent) {
-            View v = convertView;
-            if (v == null) {
-                LayoutInflater vi = (LayoutInflater)getSystemService(Context.LAYOUT_INFLATER_SERVICE);
-                v = vi.inflate(R.layout.aprow, null);
-            }
-            ScanResult ap = items.get(position);
-            if (ap != null) {
-                TextView tt = (TextView) v.findViewById(R.id.apname);
-                if (tt != null) {
-                    tt.setText(ap.SSID);                            
-                }
-            }
-            return v;
+        public View getView(int position, View convertView, ViewGroup parent) {        	
+        	APItemView apitem = (APItemView) convertView;
+        	if (apitem == null) {
+        		// inflate a new view
+        		final APItemView ap = this.mItems.get(position); 
+        		apitem = (APItemView)LayoutInflater.from(getContext()).inflate(R.layout.aprow, parent, false);
+        		apitem.setScanResult(ap.getScanResult());
+        	}
+        	return apitem;
         }
-        public void add(ScanResult sr) {
-        	items.add(sr);
+        public APItemView getItem(int position) {
+        	return mItems.get(position);
         }
     }	
     
@@ -93,13 +86,14 @@ public class APSelectionActivity extends ListActivity {
     
     private class WifiReceiver extends BroadcastReceiver {
         public void onReceive(Context c, Intent intent) {
-        	List<ScanResult> wifiList = mMainWifi.getScanResults();
-        	boolean wasEmpty = mAdapter.items.isEmpty();
+        	List<ScanResult> wifiList = mMainWifi.getScanResults();        	
+        	boolean wasEmpty = mAdapter.isEmpty();
             mAdapter.clear();
             mAdapter.notifyDataSetChanged();
             for(int i = 0; i < wifiList.size(); i++){
-                ScanResult scanResult = wifiList.get(i);                
-                mAdapter.add(scanResult);
+                ScanResult sr = wifiList.get(i);                
+                mItemList.add(new APItemView(c, sr));
+        		System.out.println("AP: " + sr.SSID + ", level: " + sr.level);
             }
             mAdapter.notifyDataSetChanged();
             if(wasEmpty) {
@@ -214,12 +208,11 @@ public class APSelectionActivity extends ListActivity {
     public void onCreate(Bundle savedInstanceState) {
        super.onCreate(savedInstanceState);       
        setContentView(R.layout.main);  
-       mItemList = new ArrayList<ScanResult>();
+       mItemList = new ArrayList<APItemView>();
        mAdapter = new APItemAdapter(this, R.layout.aprow, mItemList);
        setListAdapter(mAdapter);       
        mMainWifi = (WifiManager) getSystemService(Context.WIFI_SERVICE);
        mWifiReceiver = new WifiReceiver();
-       //mNetStatReceiver = new NetStatReceiver();       
    	   mMainWifi.startScan();       
    	   showProgress("Hold on...", "Scanning access points...");
        mTimer = new Timer();
@@ -248,7 +241,8 @@ public class APSelectionActivity extends ListActivity {
     }
     
     public void onListItemClick(ListView parent, View v, int position, long id) {  
-    	ScanResult scanResult = (ScanResult)mAdapter.getItem(position); 
+    	ScanResult scanResult = mAdapter.getItem(position).getScanResult();
+    	//ScanResult scanResult = mResultList.get(position);
     	System.out.println("wifi item is clicked! ");
     	connectToWiFiAP(this, scanResult.SSID);
 	}
@@ -291,5 +285,4 @@ public class APSelectionActivity extends ListActivity {
     	mTimer.purge();
     	mTimer = new Timer();
     }
-
 }
