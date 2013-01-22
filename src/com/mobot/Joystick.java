@@ -5,6 +5,7 @@ import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.RadialGradient;
 import android.graphics.Shader;
+import android.graphics.Typeface;
 
 public class Joystick {
 
@@ -13,24 +14,24 @@ public class Joystick {
 		int mShiftX;
 		int mShiftY;
 		int mColor;
+		Paint mPaint;
 
 		public Head() {
 			mShiftX = 0;
 			mShiftY = 0;
 			mRadius = 0;
 			mColor = Color.GRAY;
+			mPaint = new Paint();
+			mPaint.setAntiAlias(true);
 		}
 		public void setRadius(int radius) {
 			mRadius = radius;
 		}
+		
 		public void render(Canvas canvas) {
-			Paint p = new Paint();
-			p.setShader(new RadialGradient(mCenterX + mShiftX, mCenterY + mShiftY, 1.6f*mRadius, mColor, Color.BLACK, Shader.TileMode.MIRROR));
-			canvas.drawCircle(mCenterX + mShiftX, mCenterY + mShiftY, mRadius, p);
-			p.setColor(Color.BLACK);
-			p.setStyle(Paint.Style.STROKE);		
-			p.setStrokeWidth(3.0f); 
-			canvas.drawCircle(mCenterX + mShiftX, mCenterY + mShiftY, mRadius, p);
+			mPaint.setShader(new RadialGradient(mCenterX + mShiftX, mCenterY + mShiftY, 1.6f*mRadius, mColor, Color.BLACK, Shader.TileMode.MIRROR));
+			canvas.drawCircle(mCenterX + mShiftX, mCenterY + mShiftY, mRadius, mPaint);
+			canvas.drawCircle(mCenterX + mShiftX, mCenterY + mShiftY, mRadius, mPaint);
 		}
 	}
 
@@ -38,12 +39,12 @@ public class Joystick {
 	int mCenterY;
 	int mRadius;	
 	Head mHead; 
-	
-	
+	Paint mPaint;
 	
 	public Joystick()
 	{
 		mHead = new Head();
+		mPaint = new Paint();
 		setup(0, 0, 0, 0);
 	}
 	
@@ -56,7 +57,8 @@ public class Joystick {
 	}
 	
 	public boolean checkTouch(float x, float y) {
-		return Math.pow(x - (mCenterX + mHead.mShiftX), 2) + Math.pow(y - (mCenterY + mHead.mShiftY), 2) <= Math.pow(mHead.mRadius, 2);
+		return Math.pow(x - (mCenterX + mHead.mShiftX), 2) + 
+			   Math.pow(y - (mCenterY + mHead.mShiftY), 2) <= Math.pow(mHead.mRadius, 2);
 	}
 	
 	public void moveHead(float deltaX, float deltaY) {
@@ -82,13 +84,14 @@ public class Joystick {
 	}
 	
 	public void render(Canvas canvas) {
-		Paint p = new Paint();
-		p.setARGB(130, 130, 130, 130);
-		canvas.drawCircle(mCenterX, mCenterY, mRadius, p); 
-		p.setColor(Color.BLACK);
-		p.setStyle(Paint.Style.STROKE);		
-		p.setStrokeWidth(2.0f); 
-		canvas.drawCircle(mCenterX, mCenterY, mRadius, p);
+		mPaint.reset();
+		mPaint.setAntiAlias(true);
+		mPaint.setARGB(130, 130, 130, 130);
+		canvas.drawCircle(mCenterX, mCenterY, mRadius, mPaint); 
+		mPaint.setColor(Color.BLACK);
+		mPaint.setStyle(Paint.Style.STROKE);		
+		mPaint.setStrokeWidth(2.0f);
+		canvas.drawCircle(mCenterX, mCenterY, mRadius, mPaint);
 		mHead.render(canvas);
 	}
 	
