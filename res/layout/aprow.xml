@@ -2,6 +2,6 @@
 <com.mobot.APItemView 
 	xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="fill_parent"
-    android:layout_height="12mm"
+    android:layout_height="56dip"
     android:padding="6dip"
 />
