@@ -38,24 +38,18 @@ public class APSelectionActivity extends ListActivity {
     
         
    	public class APItemAdapter extends ArrayAdapter<APItemView> {
-        private ArrayList<APItemView> mItems;
    		public APItemAdapter(Context context, int textViewResourceId, ArrayList<APItemView> items) {
             super(context, textViewResourceId, items);
-            mItems = items;
-            System.out.println("AP size: " + mItems.size()); 
         }    
         public View getView(int position, View convertView, ViewGroup parent) {        	
         	APItemView apitem = (APItemView) convertView;
+    		final ScanResult sr = mItemList.get(position).getScanResult();
         	if (apitem == null) {
-        		// inflate a new view
-        		final APItemView ap = this.mItems.get(position); 
         		apitem = (APItemView)LayoutInflater.from(getContext()).inflate(R.layout.aprow, parent, false);
-        		apitem.setScanResult(ap.getScanResult());
-        	}
+        		apitem.setScanResult(sr);
+        	}        	
+    		apitem.setScanResult(sr);
         	return apitem;
-        }
-        public APItemView getItem(int position) {
-        	return mItems.get(position);
         }
     }	
     
@@ -272,7 +266,7 @@ public class APSelectionActivity extends ListActivity {
 	private void showAlert(String msg) {
 
 		AlertDialog.Builder alertDialogBuilder = new AlertDialog.Builder(this);
-		alertDialogBuilder.setTitle(msg);
+		alertDialogBuilder.setMessage(msg);
 		alertDialogBuilder			
 			.setCancelable(false)
 			.setPositiveButton("ok", null);
