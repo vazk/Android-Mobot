@@ -5,8 +5,8 @@ import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
 
+import android.app.Activity;
 import android.app.AlertDialog;
-import android.app.ListActivity;
 import android.app.ProgressDialog;
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -23,10 +23,13 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.Window;
+import android.widget.AdapterView;
+import android.widget.AdapterView.OnItemClickListener;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
 
-public class APSelectionActivity extends ListActivity {
+public class APSelectionActivity extends Activity { 
 
 	private APItemAdapter    mAdapter;
     private ProgressDialog   mProgressDialog;
@@ -69,7 +72,9 @@ public class APSelectionActivity extends ListActivity {
             	    	connectToRobot(context);            	    	
            	    		break;
            	    	case CONNECTING:
-               	        System.out.println("CONNECTING...");
+               	        System.out.println("CONNECTING (resetting the timer...)");
+                    	resetTimer();
+                        mTimer.schedule(new TimerTask() { public void run() { runOnUiThread(WiFiTimeoutFunc); } }, 5000);
            	    		break;
            	    	default:
                         System.out.println("DISCONNECTED!");
@@ -81,7 +86,6 @@ public class APSelectionActivity extends ListActivity {
     private class WifiReceiver extends BroadcastReceiver {
         public void onReceive(Context c, Intent intent) {
         	List<ScanResult> wifiList = mMainWifi.getScanResults();        	
-        	boolean wasEmpty = mAdapter.isEmpty();
             mAdapter.clear();
             mAdapter.notifyDataSetChanged();
             for(int i = 0; i < wifiList.size(); i++){
@@ -90,9 +94,7 @@ public class APSelectionActivity extends ListActivity {
         		System.out.println("AP: " + sr.SSID + ", level: " + sr.level);
             }
             mAdapter.notifyDataSetChanged();
-            if(wasEmpty) {
-            	dismissProgress();
-            }
+          	dismissProgress();
         }
     }
 	
@@ -141,6 +143,10 @@ public class APSelectionActivity extends ListActivity {
     }
 
     private void connectToWiFiAP(Context context, String ssid) {
+    	if(RobotDriver.sRobot.isRunning()) {
+    		RobotDriver.sRobot.stop();
+           	System.out.println("RobotStarter stopping......");
+    	}
     	showProgress("Hold on...", "Connecting to the network...");
         WifiManager wifi = (WifiManager)context.getSystemService(Context.WIFI_SERVICE);
         WifiConfiguration wc = new WifiConfiguration(); 
@@ -200,18 +206,47 @@ public class APSelectionActivity extends ListActivity {
     };
     
     public void onCreate(Bundle savedInstanceState) {
-       super.onCreate(savedInstanceState);       
-       setContentView(R.layout.main);  
-       mItemList = new ArrayList<APItemView>();
-       mAdapter = new APItemAdapter(this, R.layout.aprow, mItemList);
-       setListAdapter(mAdapter);       
-       mMainWifi = (WifiManager) getSystemService(Context.WIFI_SERVICE);
-       mWifiReceiver = new WifiReceiver();
-   	   mMainWifi.startScan();       
-   	   showProgress("Hold on...", "Scanning access points...");
-       mTimer = new Timer();
+    	super.onCreate(savedInstanceState);
+    	requestWindowFeature(Window.FEATURE_NO_TITLE);
+        setContentView(R.layout.main);
+        setTheme(android.R.style.Theme_Dialog);
+      
+        mItemList = new ArrayList<APItemView>();
+        mAdapter = new APItemAdapter(this, R.layout.aprow, mItemList);
+        ListView lv = (ListView) getWindow().findViewById(R.id.ap_list);
+        lv.setAdapter(mAdapter);
+       
+        lv.setOnItemClickListener(new OnItemClickListener()
+       		{
+    				public void onItemClick(AdapterView<?> arg0, View v, int position, long id) {
+            		ScanResult scanResult = mAdapter.getItem(position).getScanResult();
+            		System.out.println("wifi item is clicked! ");
+            		connectToWiFiAP(getApplicationContext(), scanResult.SSID);
+				}            	
+        	});
+       
+        mMainWifi = (WifiManager) getSystemService(Context.WIFI_SERVICE);
+        mWifiReceiver = new WifiReceiver();
+   	    mMainWifi.startScan();       
+   	    showProgress("Hold on...", "Scanning access points...");
+        mTimer = new Timer();
     }
+    
+	public void onSelectAPItemClick(AdapterView<?> arg0, View v, int position, long id) {
+		ScanResult scanResult = mAdapter.getItem(position).getScanResult();
+		System.out.println("wifi item is clicked! ");
+		connectToWiFiAP(getApplicationContext(), scanResult.SSID);
+	}            	
 
+
+    public void onScanAPButton(View v) {
+    	System.out.println("Button clicked...");
+    }
+    
+    public void onStop() {
+    	super.onStop();
+    }
+    
     public boolean onCreateOptionsMenu(Menu menu) {
         menu.add(0, 0, 0, "Refresh");
         return super.onCreateOptionsMenu(menu);
@@ -219,6 +254,7 @@ public class APSelectionActivity extends ListActivity {
 
     public boolean onMenuItemSelected(int featureId, MenuItem item) {
         mMainWifi.startScan();
+   	    showProgress("Hold on...", "Scanning access points...");
         return super.onMenuItemSelected(featureId, item);
     }
 
@@ -234,13 +270,6 @@ public class APSelectionActivity extends ListActivity {
         super.onResume();
     }
     
-    public void onListItemClick(ListView parent, View v, int position, long id) {  
-    	ScanResult scanResult = mAdapter.getItem(position).getScanResult();
-    	//ScanResult scanResult = mResultList.get(position);
-    	System.out.println("wifi item is clicked! ");
-    	connectToWiFiAP(this, scanResult.SSID);
-	}
-    
     private void showProgress(String title, String content) {
     	dismissProgress();
         mProgressDialog = ProgressDialog.show(APSelectionActivity.this, title, content, true);
@@ -248,10 +277,12 @@ public class APSelectionActivity extends ListActivity {
     private void dismissProgress() {
     	if(mProgressDialog != null) {
     		mProgressDialog.dismiss();
+    		mProgressDialog = null;
     	}
     }
     
 	private void activateNetStatReceiver() {
+		deactivateNetStatReceiver();
 		mNetStatReceiver = new NetStatReceiver();      
 		registerReceiver(mNetStatReceiver, new IntentFilter(WifiManager.NETWORK_STATE_CHANGED_ACTION));
 	}    
