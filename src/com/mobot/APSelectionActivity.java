@@ -218,7 +218,7 @@ public class APSelectionActivity extends Activity {
        
         lv.setOnItemClickListener(new OnItemClickListener()
        		{
-    				public void onItemClick(AdapterView<?> arg0, View v, int position, long id) {
+    			public void onItemClick(AdapterView<?> arg0, View v, int position, long id) {
             		ScanResult scanResult = mAdapter.getItem(position).getScanResult();
             		System.out.println("wifi item is clicked! ");
             		connectToWiFiAP(getApplicationContext(), scanResult.SSID);
@@ -231,22 +231,7 @@ public class APSelectionActivity extends Activity {
    	    showProgress("Hold on...", "Scanning access points...");
         mTimer = new Timer();
     }
-    
-	public void onSelectAPItemClick(AdapterView<?> arg0, View v, int position, long id) {
-		ScanResult scanResult = mAdapter.getItem(position).getScanResult();
-		System.out.println("wifi item is clicked! ");
-		connectToWiFiAP(getApplicationContext(), scanResult.SSID);
-	}            	
 
-
-    public void onScanAPButton(View v) {
-    	System.out.println("Button clicked...");
-    }
-    
-    public void onStop() {
-    	super.onStop();
-    }
-    
     public boolean onCreateOptionsMenu(Menu menu) {
         menu.add(0, 0, 0, "Refresh");
         return super.onCreateOptionsMenu(menu);
