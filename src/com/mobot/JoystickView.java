@@ -87,6 +87,7 @@ public class JoystickView extends View
     void resetJoystickHeadPos()
     {
 		mJoystick.resetHead();
+	    System.out.println(0 + ", " + 0);
 		RobotDriver.sRobot.commandDrive(0, 0);
     	invalidate();
     }
