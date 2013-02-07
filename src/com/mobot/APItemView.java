@@ -75,7 +75,7 @@ public class APItemView extends View {
 	private int mapDBtoRadius(float max, float min, float level) {
     	// see this link for details...
     	// http://www.anandtech.com/show/3821/iphone-4-redux-analyzing-apples-ios-41-signal-fix
-    	final float MAX_BAR_DB = -76;
+    	final float MAX_BAR_DB = -65;//-76;
     	final float MIN_BAR_DB = -107;
     	if(level > MAX_BAR_DB) return (int)max;
     	if(level < MIN_BAR_DB) return (int)min;
